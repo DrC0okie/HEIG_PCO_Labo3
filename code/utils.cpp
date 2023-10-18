@@ -1,3 +1,11 @@
+/**
+ * @file utils.cpp
+ * @brief Implementation of the Utils class
+ * @author Aubry Mangold <aubry.mangold@heig-vd.ch>
+ * @author Timothée Van Hove <timothee.vanhove@heig-vd.ch>
+ * @date 2023-10-18
+ */
+
 #include "utils.h"
 
 
