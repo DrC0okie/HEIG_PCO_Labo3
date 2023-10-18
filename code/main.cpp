@@ -3,6 +3,8 @@
 #include "utils.h"
 #include "windowinterface.h"
 
+#define NO_SLEEP 1 // Modify this to slow down.
+
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);

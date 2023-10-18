@@ -53,7 +53,9 @@ void Wholesale::run() {
         interface->updateFund(uniqueId, money);
         interface->updateStock(uniqueId, &stocks);
         //Temps de pause pour espacer les demandes de ressources
+#ifdef NO_SLEEP
         PcoThread::usleep((rand() % 10 + 1) * 100000);
+#endif
     }
     interface->consoleAppendText(uniqueId, "[STOP] Wholesaler routine");
 

@@ -50,7 +50,9 @@ void Factory::buildItem() {
     // TODO
 
     //Temps simulant l'assemblage d'un objet.
+#ifdef NO_SLEEP
     PcoThread::usleep((rand() % 100) * 100000);
+#endif
 
     // TODO
 
@@ -62,8 +64,9 @@ void Factory::orderResources() {
     // TODO - Itérer sur les resourcesNeeded et les wholesalers disponibles
 
     //Temps de pause pour éviter trop de demande
+#ifdef NO_SLEEP
     PcoThread::usleep(10 * 100000);
-
+#endif
 }
 
 void Factory::run() {

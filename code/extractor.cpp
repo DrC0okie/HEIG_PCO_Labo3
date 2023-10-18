@@ -34,14 +34,18 @@ void Extractor::run() {
         if (money < minerCost) {
             /* Pas assez d'argent */
             /* Attend des jours meilleurs */
+#ifdef NO_SLEEP
             PcoThread::usleep(1000U);
+#endif
             continue;
         }
 
         /* On peut payer un mineur */
         money -= minerCost;
         /* Temps aléatoire borné qui simule le mineur qui mine */
+#ifdef NO_SLEEP
         PcoThread::usleep((rand() % 100 + 1) * 10000);
+#endif
         /* Statistiques */
         nbExtracted++;
         /* Incrément des stocks */
