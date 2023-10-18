@@ -1,0 +1,17 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource>
+        <file>images/copper.png</file>
+        <file>images/funds_color.png</file>
+        <file>images/sand.png</file>
+        <file>images/Microchips.png</file>
+        <file>images/Service_bots.png</file>
+        <file>images/station-essence.png</file>
+        <file>images/Plastics.png</file>
+        <file>images/copper_scaled.png</file>
+        <file>images/factory_scaled.png</file>
+        <file>images/petrol_scaled.png</file>
+        <file>images/warehouse_scaled.png</file>
+        <file>images/sand_scaled.png</file>
+    </qresource>
+</RCC>

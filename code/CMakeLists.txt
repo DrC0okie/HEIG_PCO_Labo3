@@ -26,13 +26,13 @@ elseif (CMAKE_BUILD_TYPE MATCHES Release)
 endif ()
 
 # Find Qt5. We can assume Qt5 from then on
-find_package(Qt5 REQUIRED COMPONENTS Widgets)
+find_package(Qt5 REQUIRED COMPONENTS Core Widgets)
 
 # Source files
-file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/*.cpp ${CMAKE_SOURCE_DIR}/*.h ${CMAKE_SOURCE_DIR}/*.ui)
+file(GLOB SOURCES ${CMAKE_SOURCE_DIR}/*.cpp ${CMAKE_SOURCE_DIR}/*.h ${CMAKE_SOURCE_DIR}/*.ui ${CMAKE_SOURCE_DIR}/*.qrc)
 
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR})
 
-add_executable(${PROJECT_NAME} ${SOURCES})
+add_executable(${PROJECT_NAME} ${SOURCES} ${RESOURCE_FILES})
 target_link_libraries(${PROJECT_NAME} Qt5::Widgets pcosynchro)
