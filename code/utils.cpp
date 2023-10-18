@@ -2,15 +2,17 @@
 
 
 void Utils::endService() {
-    // TODO
     std::cout << "It's time to end !" << std::endl;
+
+    // Ask the threads to stop
+    for(auto& thread : threads)
+        thread->requestStop();
 }
 
 void Utils::externalEndService() {
     endService();
     semEnd.acquire();
     utilsThread->join();
-
 }
 
 std::vector<Extractor*> createExtractors(int nbExtractors, int idStart) {

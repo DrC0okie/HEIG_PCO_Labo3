@@ -48,7 +48,7 @@ void Wholesale::run() {
     }
 
     interface->consoleAppendText(uniqueId, "[START] Wholesaler routine");
-    while (true /* TODO terminaison*/) {
+    while (!PcoThread::thisThread()->stopRequested()) {
         buyResources();
         interface->updateFund(uniqueId, money);
         interface->updateStock(uniqueId, &stocks);
