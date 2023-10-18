@@ -9,6 +9,7 @@
 #include "extractor.h"
 #include "costs.h"
 #include <pcosynchro/pcothread.h>
+#include <pcosynchro/pcomutex.h>
 
 WindowInterface* Extractor::interface = nullptr;
 
@@ -33,6 +34,7 @@ int Extractor::trade(ItemType it, int qty) {
 }
 
 void Extractor::run() {
+    PcoMutex mutex = PcoMutex();
     interface->consoleAppendText(uniqueId, "[START] Mine routine");
 
     while (!PcoThread::thisThread()->stopRequested()) {
@@ -48,6 +50,8 @@ void Extractor::run() {
             continue;
         }
 
+        // Section critique.
+        mutex.lock();
         /* On peut payer un mineur */
         money -= minerCost;
         /* Temps aléatoire borné qui simule le mineur qui mine */
@@ -58,6 +62,8 @@ void Extractor::run() {
         nbExtracted++;
         /* Incrément des stocks */
         stocks[resourceExtracted] += 1;
+        mutex.unlock();
+
         /* Message dans l'interface graphique */
         interface->consoleAppendText(uniqueId, QString("1 ") % getItemName(resourceExtracted) %
                                      " has been mined");
