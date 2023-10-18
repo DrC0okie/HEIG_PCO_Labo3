@@ -28,9 +28,24 @@ std::map<ItemType, int> Extractor::getItemsForSale() {
 }
 
 int Extractor::trade(ItemType it, int qty) {
-    // TODO
+    // Check trade validity
+    static PcoMutex mutex = PcoMutex();
+    if (it != getResourceMined()
+        || qty <= 0
+        || getItemsForSale()[it] <= 0
+        || getFund() < getEmployeeSalary(getEmployeeThatProduces(it))) {
+        return 0;
+    }
 
-    return 0;
+    // Only allow one trade at a time.
+    mutex.lock(); // TODO: make sure this is necessary
+    money -= qty * getMaterialCost();
+    stocks[it] -= qty;
+    mutex.unlock();
+
+    interface->updateFund(uniqueId, money);
+
+    return qty * getMaterialCost();
 }
 
 void Extractor::run() {
