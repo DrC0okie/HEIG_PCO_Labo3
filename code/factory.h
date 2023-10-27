@@ -65,8 +65,6 @@ private:
 
     static WindowInterface* interface;
 
-    static PcoMutex tradeMutex;
-
     /**
      * @brief Fonction privée permettant de vérifier si l'usine à toute les ressources
      *        nécessaire à la construction d'un objet.

@@ -95,6 +95,8 @@ std::map<ItemType, int> Factory::getItemsForSale() {
 
 int Factory::trade(ItemType it, int qty) {
 
+    static PcoMutex tradeMutex = PcoMutex();
+
     if(qty <= 0)
         return 0;
 
