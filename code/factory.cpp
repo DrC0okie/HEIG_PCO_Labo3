@@ -4,6 +4,7 @@
 #include "wholesale.h"
 #include <pcosynchro/pcothread.h>
 #include <iostream>
+#include <mutex>
 
 WindowInterface* Factory::interface = nullptr;
 
@@ -93,7 +94,31 @@ std::map<ItemType, int> Factory::getItemsForSale() {
 }
 
 int Factory::trade(ItemType it, int qty) {
-    // TODO
+
+    static PcoMutex tradeMutex = PcoMutex();
+
+    if(qty <= 0)
+        return 0;
+
+    // Here we use a lock_guard to ensure the lock is always released
+    // even in case of an exception
+    std::lock_guard<PcoMutex> guard(tradeMutex);
+
+    auto availableItems = getItemsForSale();
+    auto item = availableItems.find(it);
+
+    // check if the asked item is available in sufficient quantity
+    if(item != availableItems.end() && qty <= item->second){
+
+        int cost = getCostPerUnit(it) * qty;
+
+        // Transaction
+        money += cost;
+        stocks[it] -= qty;
+
+        return cost;
+    }
+
     return 0;
 }
 

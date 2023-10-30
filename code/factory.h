@@ -3,6 +3,7 @@
 #include <vector>
 #include "windowinterface.h"
 #include "seller.h"
+#include <pcosynchro/pcomutex.h>
 
 class Wholesale;
 
