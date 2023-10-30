@@ -6,6 +6,8 @@
 #include <map>
 #include <vector>
 #include "costs.h"
+#include <pcosynchro/pcomutex.h> // PcoMutex
+#include <mutex>                 // std::lock_guard
 
 enum class ItemType { Sand, Copper, Petrol, Chip, Plastic, Robot, Nothing};
 
