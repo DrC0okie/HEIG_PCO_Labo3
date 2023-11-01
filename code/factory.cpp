@@ -59,15 +59,17 @@ void Factory::buildItem() {
         return;
     }
 
-    stockMutex.lock();
-
     // produce item
+    stockMutex.lock();
     for (ItemType item : resourcesNeeded) {
         stocks[item]--;
     }
+    stockMutex.unlock();
 
     // Pay salary
+    moneyMutex.lock();
     money -= salary;
+    moneyMutex.unlock();
 
     // Temps simulant l'assemblage d'un objet.
     PcoThread::usleep((rand() % 100) * 100000);
@@ -76,6 +78,7 @@ void Factory::buildItem() {
     nbBuild++;
 
     // update item stock
+    stockMutex.lock();
     stocks[itemBuilt]++;
     stockMutex.unlock();
 
@@ -101,8 +104,12 @@ void Factory::orderResources() {
             cost = ws->trade(resourceToBuy, 1);
             if (cost == 0)
                 continue; // Trade did not work. Look at another wholeseller.
+            stockMutex.lock();
             stocks[resourceToBuy]++;
+            stockMutex.unlock();
+            moneyMutex.lock();
             money -= cost;
+            moneyMutex.unlock();
             break;
         }
     }
@@ -147,8 +154,10 @@ int Factory::trade(ItemType it, int qty) {
 
     moneyMutex.lock();
     money += cost;
-    stocks[it] -= qty;
     moneyMutex.unlock();
+    stockMutex.lock();
+    stocks[it] -= qty;
+    stockMutex.unlock();
 
     return cost;
 }
