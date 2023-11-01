@@ -62,7 +62,38 @@ void Factory::buildItem() {
 
 void Factory::orderResources() {
 
-    // TODO - Itérer sur les resourcesNeeded et les wholesalers disponibles
+    // Using lock_guard for cleaner management of lock
+    static PcoMutex orderMutex = PcoMutex();
+    std::lock_guard<PcoMutex> guard(orderMutex);
+
+    auto res = resourcesNeeded;
+
+    // Sort based on stocks, prioritizing resources the factory has the least of
+    std::sort(res.begin(), res.end(),
+              [this](const ItemType& i1, const ItemType& i2) -> bool {
+                  return stocks[i1] < stocks[i2];
+              });
+
+    // Iterate over the sorted resources
+    for (auto it : res) {
+        // Check if we have enough money
+        int cost = getCostPerUnit(it);
+
+        if (money < cost){
+            // We can't buy this resource => stop trying to purchase others
+            // since they are less critical
+            break;
+        }
+
+        // Iterate over available wholesalers
+        for (Wholesale* ws : wholesalers) {
+            // If the trade is successful, update stocks and money
+            if (ws->trade(it, 1) == cost) {
+                stocks[it]++;
+                money -= cost;
+            }
+        }
+    }
 
     //Temps de pause pour éviter trop de demande
 #ifdef NO_SLEEP
