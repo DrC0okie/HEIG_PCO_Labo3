@@ -90,21 +90,19 @@ void Factory::orderResources() {
         stocks.cbegin(), stocks.cend(),
         [](const auto& l, const auto& r) { return l.second < r.second; });
 
-    ItemType resourcetoBuy = res->first;
-
-    // Check if we have enough money
-    int cost = getCostPerUnit(resourcetoBuy);
-
-    if (money < cost) {
-        return;
-    }
+    ItemType resourceToBuy = res->first;
 
     // Iterate over available wholesalers
     for (Wholesale* ws : wholesalers) {
-        // If the trade is successful, update stocks and money
-        if (ws->trade(resourcetoBuy, 1) == cost) {
+        if (ws->getItemsForSale().contains(resourceToBuy)) {
+            int cost = getCostPerUnit(resourceToBuy);
+            if (cost > money)
+                break;
+            cost = ws->trade(resourceToBuy, 1);
+            if (cost == 0)
+                continue; // Trade did not work. Look at another wholeseller.
             orderMutex.lock();
-            stocks[resourcetoBuy]++;
+            stocks[resourceToBuy]++;
             money -= cost;
             orderMutex.unlock();
             break;
