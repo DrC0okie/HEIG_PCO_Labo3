@@ -54,10 +54,10 @@ bool Factory::verifyResources() {
 void Factory::buildItem() {
     int salary = getEmployeeSalary(getEmployeeThatProduces(itemBuilt));
 
+    // If we have enough money to pay salary
     if (money < salary) {
         return;
     }
-    // If we have enough money to pay salary
 
     runMutex.lock();
 
@@ -68,12 +68,10 @@ void Factory::buildItem() {
 
     // Pay salary
     money -= salary;
-    runMutex.unlock();
 
     // Temps simulant l'assemblage d'un objet.
     PcoThread::usleep((rand() % 100) * 100000);
 
-    runMutex.lock();
     // Increment number of payed employee
     nbBuild++;
 
@@ -86,36 +84,32 @@ void Factory::buildItem() {
 }
 
 void Factory::orderResources() {
-    orderMutex.lock();
-    auto res = resourcesNeeded;
 
-    // Sort based on stocks, prioritizing resources the factory has the least of
-    std::sort(res.begin(), res.end(),
-              [this](const ItemType& i1, const ItemType& i2) -> bool {
-                  return stocks[i1] < stocks[i2];
-              });
+    // Prioritizing resources the factory has the least of.
+    auto res = std::min_element(
+        stocks.cbegin(), stocks.cend(),
+        [](const auto& l, const auto& r) { return l.second < r.second; });
 
-    // Iterate over the sorted resources
-    for (auto it : res) {
-        // Check if we have enough money
-        int cost = getCostPerUnit(it);
+    ItemType resourcetoBuy = res->first;
 
-        if (money < cost) {
-            // We can't buy this resource => stop trying to purchase others
-            // since they are less critical
+    // Check if we have enough money
+    int cost = getCostPerUnit(resourcetoBuy);
+
+    if (money < cost) {
+        return;
+    }
+
+    // Iterate over available wholesalers
+    for (Wholesale* ws : wholesalers) {
+        // If the trade is successful, update stocks and money
+        if (ws->trade(resourcetoBuy, 1) == cost) {
+            orderMutex.lock();
+            stocks[resourcetoBuy]++;
+            money -= cost;
+            orderMutex.unlock();
             break;
         }
-
-        // Iterate over available wholesalers
-        for (Wholesale* ws : wholesalers) {
-            // If the trade is successful, update stocks and money
-            if (ws->trade(it, 1) == cost) {
-                stocks[it]++;
-                money -= cost;
-            }
-        }
     }
-    orderMutex.unlock();
 
     // Temps de pause pour éviter trop de demande
     PcoThread::usleep(10 * 100000);
@@ -149,8 +143,9 @@ std::map<ItemType, int> Factory::getItemsForSale() {
 }
 
 int Factory::trade(ItemType it, int qty) {
-    if (qty <= 0 || it != itemBuilt || stocks[itemBuilt] <= 0)
+    if (qty <= 0 || it != itemBuilt || stocks[itemBuilt] < qty) {
         return 0;
+    }
 
     int cost = getCostPerUnit(it) * qty;
 
