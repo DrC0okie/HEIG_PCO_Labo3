@@ -68,14 +68,9 @@ protected:
     int uniqueId;
 
     /**
-     * @brief Mutex used to avoid concurrency while manipulating money.
+     * @brief Mutex used to avoid concurrency while manipulating money or stock.
      */
-    PcoMutex moneyMutex;
-
-    /**
-     * @brief Mutex used to avoid concurrency while manipulating the stock.
-     */
-    PcoMutex stockMutex;
+    PcoMutex transactionMutex;
 };
 
 #endif // SELLER_H

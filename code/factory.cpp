@@ -60,16 +60,14 @@ void Factory::buildItem() {
     }
 
     // produce item
-    stockMutex.lock();
+    transactionMutex.lock();
     for (ItemType item : resourcesNeeded) {
         stocks[item]--;
     }
-    stockMutex.unlock();
 
     // Pay salary
-    moneyMutex.lock();
     money -= salary;
-    moneyMutex.unlock();
+    transactionMutex.unlock();
 
     // Temps simulant l'assemblage d'un objet.
     PcoThread::usleep((rand() % 100) * 100000);
@@ -78,16 +76,15 @@ void Factory::buildItem() {
     nbBuild++;
 
     // update item stock
-    stockMutex.lock();
+    transactionMutex.lock();
     stocks[itemBuilt]++;
-    stockMutex.unlock();
+    transactionMutex.unlock();
 
     // Update interface
     interface->consoleAppendText(uniqueId, "Factory have build a new object");
 }
 
 void Factory::orderResources() {
-
     // Prioritizing resources the factory has the least of.
     auto res = std::min_element(
         stocks.cbegin(), stocks.cend(),
@@ -104,12 +101,10 @@ void Factory::orderResources() {
             cost = ws->trade(resourceToBuy, 1);
             if (cost == 0)
                 continue; // Trade did not work. Look at another wholeseller.
-            stockMutex.lock();
+            transactionMutex.lock();
             stocks[resourceToBuy]++;
-            stockMutex.unlock();
-            moneyMutex.lock();
             money -= cost;
-            moneyMutex.unlock();
+            transactionMutex.unlock();
             break;
         }
     }
@@ -152,12 +147,10 @@ int Factory::trade(ItemType it, int qty) {
 
     int cost = getCostPerUnit(it) * qty;
 
-    moneyMutex.lock();
+    transactionMutex.lock();
     money += cost;
-    moneyMutex.unlock();
-    stockMutex.lock();
     stocks[it] -= qty;
-    stockMutex.unlock();
+    transactionMutex.unlock();
 
     return cost;
 }

@@ -33,12 +33,11 @@ int Extractor::trade(ItemType it, int qty) {
     }
 
     int cost = qty * getMaterialCost();
-    moneyMutex.lock();
+    transactionMutex.lock();
     money += cost;
-    moneyMutex.unlock();
-    stockMutex.lock();
+
     stocks[it] -= qty;
-    stockMutex.unlock();
+    transactionMutex.unlock();
 
     return cost;
 }
@@ -55,18 +54,18 @@ void Extractor::run() {
             continue;
         }
 
-        moneyMutex.lock();
+        transactionMutex.lock();
         /* On peut payer un mineur */
         money -= minerCost;
-        moneyMutex.unlock();
+        transactionMutex.unlock();
         /* Temps aléatoire borné qui simule le mineur qui mine */
         PcoThread::usleep((rand() % 100 + 1) * 10000);
         /* Statistiques */
         nbExtracted++;
         /* Incrément des stocks */
-        stockMutex.lock();
+        transactionMutex.lock();
         stocks[resourceExtracted] += 1;
-        stockMutex.unlock();
+        transactionMutex.unlock();
 
         /* Message dans l'interface graphique */
         interface->consoleAppendText(uniqueId, QString("1 ") % getItemName(resourceExtracted) %

@@ -43,12 +43,10 @@ void Wholesale::buyResources() {
 
     int bill = s->trade(i, qty);
     if (bill > 0) {
-        moneyMutex.lock();
+        transactionMutex.lock();
         money -= bill;
-        moneyMutex.unlock();
-        stockMutex.lock();
         stocks[i] += qty;
-        stockMutex.unlock();
+        transactionMutex.unlock();
     }
 }
 
@@ -83,12 +81,11 @@ int Wholesale::trade(ItemType it, int qty) {
     }
 
     int cost = getCostPerUnit(it) * qty;
-    moneyMutex.lock();
+    transactionMutex.lock();
     money += cost;
-    moneyMutex.unlock();
-    stockMutex.lock();
+
     stocks[it] -= qty;
-    stockMutex.unlock();
+    transactionMutex.unlock();
 
     return cost;
 }
