@@ -27,13 +27,14 @@ std::map<ItemType, int> Extractor::getItemsForSale() {
 }
 
 int Extractor::trade(ItemType it, int qty) {
+    transactionMutex.lock();
     // Check trade validity
     if ( qty <= 0 || it != resourceExtracted || stocks[it] < qty) {
+        transactionMutex.unlock();
         return 0;
     }
 
     int cost = qty * getMaterialCost();
-    transactionMutex.lock();
     money += cost;
 
     stocks[it] -= qty;
@@ -47,14 +48,16 @@ void Extractor::run() {
 
     while (!PcoThread::thisThread()->stopRequested()) {
         int minerCost = getEmployeeSalary(getEmployeeThatProduces(resourceExtracted));
+        transactionMutex.lock();
         if (money < minerCost) {
+            transactionMutex.unlock();
             /* Pas assez d'argent */
             /* Attend des jours meilleurs */
             PcoThread::usleep(1000U);
+            transactionMutex.lock();
             continue;
         }
 
-        transactionMutex.lock();
         /* On peut payer un mineur */
         money -= minerCost;
         transactionMutex.unlock();

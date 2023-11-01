@@ -54,13 +54,14 @@ bool Factory::verifyResources() {
 void Factory::buildItem() {
     int salary = getEmployeeSalary(getEmployeeThatProduces(itemBuilt));
 
+    transactionMutex.lock();
     // If we have enough money to pay salary
     if (money < salary) {
+        transactionMutex.unlock();
         return;
     }
 
     // produce item
-    transactionMutex.lock();
     for (ItemType item : resourcesNeeded) {
         stocks[item]--;
     }
@@ -85,12 +86,12 @@ void Factory::buildItem() {
 }
 
 void Factory::orderResources() {
+    transactionMutex.lock();
     // Prioritizing resources the factory has the least of.
-    auto res = std::min_element(
-        stocks.cbegin(), stocks.cend(),
-        [](const auto& l, const auto& r) { return l.second < r.second; });
-
-    ItemType resourceToBuy = res->first;
+    ItemType resourceToBuy = std::min_element(stocks.cbegin(), stocks.cend(),
+                                              [](const auto& l, const auto& r) {
+                                                  return l.second < r.second;
+                                              })->first;
 
     // Iterate over available wholesalers
     for (Wholesale* ws : wholesalers) {
@@ -100,14 +101,13 @@ void Factory::orderResources() {
                 break;
             cost = ws->trade(resourceToBuy, 1);
             if (cost == 0)
-                continue; // Trade did not work. Look at another wholeseller.
-            transactionMutex.lock();
+                continue;  // Trade did not work. Look at another wholeseller.
             stocks[resourceToBuy]++;
             money -= cost;
-            transactionMutex.unlock();
             break;
         }
     }
+    transactionMutex.unlock();
 
     // Temps de pause pour éviter trop de demande
     PcoThread::usleep(10 * 100000);
@@ -141,13 +141,14 @@ std::map<ItemType, int> Factory::getItemsForSale() {
 }
 
 int Factory::trade(ItemType it, int qty) {
+    transactionMutex.lock();
     if (qty <= 0 || it != itemBuilt || stocks[itemBuilt] < qty) {
+        transactionMutex.unlock();
         return 0;
     }
 
     int cost = getCostPerUnit(it) * qty;
 
-    transactionMutex.lock();
     money += cost;
     stocks[it] -= qty;
     transactionMutex.unlock();
