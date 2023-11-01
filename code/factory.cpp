@@ -59,7 +59,7 @@ void Factory::buildItem() {
         return;
     }
 
-    runMutex.lock();
+    stockMutex.lock();
 
     // produce item
     for (ItemType item : resourcesNeeded) {
@@ -77,7 +77,7 @@ void Factory::buildItem() {
 
     // update item stock
     stocks[itemBuilt]++;
-    runMutex.unlock();
+    stockMutex.unlock();
 
     // Update interface
     interface->consoleAppendText(uniqueId, "Factory have build a new object");
@@ -147,10 +147,10 @@ int Factory::trade(ItemType it, int qty) {
 
     int cost = getCostPerUnit(it) * qty;
 
-    tradeMutex.lock();
+    moneyMutex.lock();
     money += cost;
     stocks[it] -= qty;
-    tradeMutex.unlock();
+    moneyMutex.unlock();
 
     return cost;
 }

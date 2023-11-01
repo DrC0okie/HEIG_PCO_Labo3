@@ -32,10 +32,10 @@ int Extractor::trade(ItemType it, int qty) {
         return 0;
     }
 
-    tradeMutex.lock();
+    moneyMutex.lock();
     money -= qty * getMaterialCost();
     stocks[it] -= qty;
-    tradeMutex.unlock();
+    moneyMutex.unlock();
 
     interface->updateFund(uniqueId, money);
     interface->consoleAppendText(uniqueId, QString("Sold %1 %2").arg(qty).arg(getItemName(it)));
@@ -57,7 +57,7 @@ void Extractor::run() {
         }
 
         // Section critique.
-        runMutex.lock();
+        stockMutex.lock();
         /* On peut payer un mineur */
         money -= minerCost;
         /* Temps aléatoire borné qui simule le mineur qui mine */
@@ -66,7 +66,7 @@ void Extractor::run() {
         nbExtracted++;
         /* Incrément des stocks */
         stocks[resourceExtracted] += 1;
-        runMutex.unlock();
+        stockMutex.unlock();
 
         /* Message dans l'interface graphique */
         interface->consoleAppendText(uniqueId, QString("1 ") % getItemName(resourceExtracted) %
