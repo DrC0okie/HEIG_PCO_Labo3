@@ -32,18 +32,15 @@ int Extractor::trade(ItemType it, int qty) {
         return 0;
     }
 
+    int cost = qty * getMaterialCost();
     moneyMutex.lock();
-    money -= qty * getMaterialCost();
+    money += cost;
     moneyMutex.unlock();
     stockMutex.lock();
     stocks[it] -= qty;
     stockMutex.unlock();
 
-    interface->updateFund(uniqueId, money);
-    interface->consoleAppendText(uniqueId, QString("Sold %1 %2").arg(qty).arg(getItemName(it)));
-    interface->updateStock(uniqueId, &stocks);
-
-    return qty * getMaterialCost();
+    return cost;
 }
 
 void Extractor::run() {
