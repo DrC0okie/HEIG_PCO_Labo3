@@ -69,7 +69,7 @@ int Wholesale::trade(ItemType it, int qty) {
     if (qty <= 0)
         return 0;
 
-    Extractor::
+
     // TODO
 
     return 0;
