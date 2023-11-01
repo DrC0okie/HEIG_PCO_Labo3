@@ -47,16 +47,14 @@ bool Factory::verifyResources() {
 }
 
 void Factory::buildItem() {
-
+    runMutex.lock();
     // TODO
 
     //Temps simulant l'assemblage d'un objet.
-#ifdef NO_SLEEP
     PcoThread::usleep((rand() % 100) * 100000);
-#endif
 
     // TODO
-
+    runMutex.unlock();
     interface->consoleAppendText(uniqueId, "Factory have build a new object");
 }
 
@@ -65,9 +63,7 @@ void Factory::orderResources() {
     // TODO - Itérer sur les resourcesNeeded et les wholesalers disponibles
 
     //Temps de pause pour éviter trop de demande
-#ifdef NO_SLEEP
     PcoThread::usleep(10 * 100000);
-#endif
 }
 
 void Factory::run() {
@@ -94,32 +90,17 @@ std::map<ItemType, int> Factory::getItemsForSale() {
 }
 
 int Factory::trade(ItemType it, int qty) {
-
-    static PcoMutex tradeMutex = PcoMutex();
-
-    if(qty <= 0)
+    if (qty <= 0 || it != itemBuilt || stocks[itemBuilt] <= 0)
         return 0;
 
-    // Here we use a lock_guard to ensure the lock is always released
-    // even in case of an exception
-    std::lock_guard<PcoMutex> guard(tradeMutex);
+    int cost = getCostPerUnit(it) * qty;
+    
+    tradeMutex.lock();
+    money += cost;
+    stocks[it] -= qty;
+    tradeMutex.unlock();
 
-    auto availableItems = getItemsForSale();
-    auto item = availableItems.find(it);
-
-    // check if the asked item is available in sufficient quantity
-    if(item != availableItems.end() && qty <= item->second){
-
-        int cost = getCostPerUnit(it) * qty;
-
-        // Transaction
-        money += cost;
-        stocks[it] -= qty;
-
-        return cost;
-    }
-
-    return 0;
+    return cost;
 }
 
 int Factory::getAmountPaidToWorkers() {

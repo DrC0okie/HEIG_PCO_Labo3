@@ -9,7 +9,6 @@
 #include "extractor.h"
 #include "costs.h"
 #include <pcosynchro/pcothread.h>
-#include <pcosynchro/pcomutex.h>
 
 WindowInterface* Extractor::interface = nullptr;
 
@@ -29,55 +28,45 @@ std::map<ItemType, int> Extractor::getItemsForSale() {
 
 int Extractor::trade(ItemType it, int qty) {
     // Check trade validity
-    static PcoMutex mutex = PcoMutex();
-    if (it != getResourceMined()
-        || qty <= 0
-        || getItemsForSale()[it] <= 0
-        || getFund() < getEmployeeSalary(getEmployeeThatProduces(it))) {
+    if ( qty <= 0 || it != resourceExtracted || stocks[it] < qty) {
         return 0;
     }
 
-    // Only allow one trade at a time.
-    mutex.lock(); // TODO: make sure this is necessary
+    tradeMutex.lock();
     money -= qty * getMaterialCost();
     stocks[it] -= qty;
-    mutex.unlock();
+    tradeMutex.unlock();
 
     interface->updateFund(uniqueId, money);
+    interface->consoleAppendText(uniqueId, QString("Sold %1 %2").arg(qty).arg(getItemName(it)));
+    interface->updateStock(uniqueId, &stocks);
 
     return qty * getMaterialCost();
 }
 
 void Extractor::run() {
-    PcoMutex mutex = PcoMutex();
     interface->consoleAppendText(uniqueId, "[START] Mine routine");
 
     while (!PcoThread::thisThread()->stopRequested()) {
-        /* TODO concurrence */
-
         int minerCost = getEmployeeSalary(getEmployeeThatProduces(resourceExtracted));
         if (money < minerCost) {
             /* Pas assez d'argent */
             /* Attend des jours meilleurs */
-#ifdef NO_SLEEP
             PcoThread::usleep(1000U);
-#endif
             continue;
         }
 
         // Section critique.
-        mutex.lock();
+        runMutex.lock();
         /* On peut payer un mineur */
         money -= minerCost;
         /* Temps aléatoire borné qui simule le mineur qui mine */
-#ifdef NO_SLEEP
         PcoThread::usleep((rand() % 100 + 1) * 10000);
-#endif
         /* Statistiques */
         nbExtracted++;
         /* Incrément des stocks */
         stocks[resourceExtracted] += 1;
-        mutex.unlock();
+        runMutex.unlock();
 
         /* Message dans l'interface graphique */
         interface->consoleAppendText(uniqueId, QString("1 ") % getItemName(resourceExtracted) %
