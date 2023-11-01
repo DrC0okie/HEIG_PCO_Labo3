@@ -48,15 +48,39 @@ bool Factory::verifyResources() {
 
 void Factory::buildItem() {
 
-    // TODO
+    int salary = getEmployeeSalary(getEmployeeThatProduces(itemBuilt));
+    static PcoMutex buildMutex = PcoMutex();
+
+    // If we have enough money to pay salary
+    if(money >= salary){
+        buildMutex.lock();
+
+        // produce item
+        for(ItemType item : resourcesNeeded) {
+            stocks[item]--;
+        }
+
+        //Pay salary
+        money -= salary;
+        buildMutex.unlock();
+    }else{
+        return;
+    }
 
     //Temps simulant l'assemblage d'un objet.
 #ifdef NO_SLEEP
     PcoThread::usleep((rand() % 100) * 100000);
 #endif
 
-    // TODO
+    buildMutex.lock();
+    // Increment number of payed employee
+    nbBuild++;
 
+    // update item stock
+    stocks[itemBuilt]++;
+    buildMutex.unlock();
+
+    // Update interface
     interface->consoleAppendText(uniqueId, "Factory have build a new object");
 }
 
