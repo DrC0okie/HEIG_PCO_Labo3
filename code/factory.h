@@ -81,11 +81,6 @@ private:
      * @brief Construction d'un objet par l'usine.
      */
     void buildItem();
-
-    /**
-     * @brief Mutex used to avoid multiple orders at once.
-     */
-    PcoMutex orderMutex;
 };
 
 

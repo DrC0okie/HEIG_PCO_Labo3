@@ -101,10 +101,8 @@ void Factory::orderResources() {
             cost = ws->trade(resourceToBuy, 1);
             if (cost == 0)
                 continue; // Trade did not work. Look at another wholeseller.
-            orderMutex.lock();
             stocks[resourceToBuy]++;
             money -= cost;
-            orderMutex.unlock();
             break;
         }
     }
