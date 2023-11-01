@@ -6,6 +6,8 @@
 #include <map>
 #include <vector>
 #include "costs.h"
+#include <pcosynchro/pcomutex.h> // PcoMutex
+#include <mutex>                 // std::lock_guard
 
 enum class ItemType { Sand, Copper, Petrol, Chip, Plastic, Robot, Nothing};
 
@@ -64,6 +66,16 @@ protected:
     std::map<ItemType, int> stocks;
     int money;
     int uniqueId;
+
+    /**
+     * @brief Mutex used to avoid multiple trades at once.
+     */
+    PcoMutex tradeMutex;
+
+    /**
+     * @brief Mutex used to avoid multiple builds at once.
+     */
+    PcoMutex runMutex;
 };
 
 #endif // SELLER_H

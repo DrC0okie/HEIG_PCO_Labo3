@@ -53,9 +53,8 @@ void Wholesale::run() {
         interface->updateFund(uniqueId, money);
         interface->updateStock(uniqueId, &stocks);
         //Temps de pause pour espacer les demandes de ressources
-#ifdef NO_SLEEP
+
         PcoThread::usleep((rand() % 10 + 1) * 100000);
-#endif
     }
     interface->consoleAppendText(uniqueId, "[STOP] Wholesaler routine");
 
@@ -67,6 +66,9 @@ std::map<ItemType, int> Wholesale::getItemsForSale() {
 }
 
 int Wholesale::trade(ItemType it, int qty) {
+    if (qty <= 0)
+        return 0;
+
 
     // TODO
 

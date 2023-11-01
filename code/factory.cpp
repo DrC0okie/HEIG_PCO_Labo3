@@ -1,29 +1,34 @@
 #include "factory.h"
-#include "extractor.h"
-#include "costs.h"
-#include "wholesale.h"
+
 #include <pcosynchro/pcothread.h>
+
 #include <iostream>
 #include <mutex>
+
+#include "costs.h"
+#include "extractor.h"
+#include "wholesale.h"
 
 WindowInterface* Factory::interface = nullptr;
 
 
-Factory::Factory(int uniqueId, int fund, ItemType builtItem, std::vector<ItemType> resourcesNeeded)
-    : Seller(fund, uniqueId), resourcesNeeded(resourcesNeeded), itemBuilt(builtItem), nbBuild(0)
-{
-    assert(builtItem == ItemType::Chip ||
-           builtItem == ItemType::Plastic ||
+Factory::Factory(int uniqueId, int fund, ItemType builtItem,
+                 std::vector<ItemType> resourcesNeeded)
+    : Seller(fund, uniqueId),
+      resourcesNeeded(resourcesNeeded),
+      itemBuilt(builtItem),
+      nbBuild(0) {
+    assert(builtItem == ItemType::Chip || builtItem == ItemType::Plastic ||
            builtItem == ItemType::Robot);
 
     interface->updateFund(uniqueId, fund);
     interface->consoleAppendText(uniqueId, "Factory created");
 }
 
-void Factory::setWholesalers(std::vector<Wholesale *> wholesalers) {
+void Factory::setWholesalers(std::vector<Wholesale*> wholesalers) {
     Factory::wholesalers = wholesalers;
 
-    for(Seller* seller: wholesalers){
+    for (Seller* seller : wholesalers) {
         interface->setLink(uniqueId, seller->getUniqueId());
     }
 }
@@ -47,49 +52,41 @@ bool Factory::verifyResources() {
 }
 
 void Factory::buildItem() {
-
     int salary = getEmployeeSalary(getEmployeeThatProduces(itemBuilt));
-    static PcoMutex buildMutex = PcoMutex();
 
-    // If we have enough money to pay salary
-    if(money >= salary){
-        buildMutex.lock();
-
-        // produce item
-        for(ItemType item : resourcesNeeded) {
-            stocks[item]--;
-        }
-
-        //Pay salary
-        money -= salary;
-        buildMutex.unlock();
-    }else{
+    if (money < salary) {
         return;
     }
+    // If we have enough money to pay salary
 
-    //Temps simulant l'assemblage d'un objet.
-#ifdef NO_SLEEP
+    runMutex.lock();
+
+    // produce item
+    for (ItemType item : resourcesNeeded) {
+        stocks[item]--;
+    }
+
+    // Pay salary
+    money -= salary;
+    runMutex.unlock();
+
+    // Temps simulant l'assemblage d'un objet.
     PcoThread::usleep((rand() % 100) * 100000);
-#endif
 
-    buildMutex.lock();
+    runMutex.lock();
     // Increment number of payed employee
     nbBuild++;
 
     // update item stock
     stocks[itemBuilt]++;
-    buildMutex.unlock();
+    runMutex.unlock();
 
     // Update interface
     interface->consoleAppendText(uniqueId, "Factory have build a new object");
 }
 
 void Factory::orderResources() {
-
-    // Using lock_guard for cleaner management of lock
-    static PcoMutex orderMutex = PcoMutex();
-    std::lock_guard<PcoMutex> guard(orderMutex);
-
+    orderMutex.lock();
     auto res = resourcesNeeded;
 
     // Sort based on stocks, prioritizing resources the factory has the least of
@@ -103,7 +100,7 @@ void Factory::orderResources() {
         // Check if we have enough money
         int cost = getCostPerUnit(it);
 
-        if (money < cost){
+        if (money < cost) {
             // We can't buy this resource => stop trying to purchase others
             // since they are less critical
             break;
@@ -118,16 +115,17 @@ void Factory::orderResources() {
             }
         }
     }
+    orderMutex.unlock();
 
-    //Temps de pause pour éviter trop de demande
-#ifdef NO_SLEEP
+    // Temps de pause pour éviter trop de demande
     PcoThread::usleep(10 * 100000);
-#endif
 }
 
 void Factory::run() {
     if (wholesalers.empty()) {
-        std::cerr << "You have to give to factories wholesalers to sales their resources" << std::endl;
+        std::cerr << "You have to give to factories wholesalers to sales their "
+                     "resources"
+                  << std::endl;
         return;
     }
     interface->consoleAppendText(uniqueId, "[START] Factory routine");
@@ -145,51 +143,41 @@ void Factory::run() {
 }
 
 std::map<ItemType, int> Factory::getItemsForSale() {
-    return std::map<ItemType, int>({{itemBuilt, stocks[itemBuilt]}});
+    return std::map<ItemType, int>({
+        {itemBuilt, stocks[itemBuilt]}
+    });
 }
 
 int Factory::trade(ItemType it, int qty) {
-
-    static PcoMutex tradeMutex = PcoMutex();
-
-    if(qty <= 0)
+    if (qty <= 0 || it != itemBuilt || stocks[itemBuilt] <= 0)
         return 0;
 
-    // Here we use a lock_guard to ensure the lock is always released
-    // even in case of an exception
-    std::lock_guard<PcoMutex> guard(tradeMutex);
+    int cost = getCostPerUnit(it) * qty;
 
-    auto availableItems = getItemsForSale();
-    auto item = availableItems.find(it);
+    tradeMutex.lock();
+    money += cost;
+    stocks[it] -= qty;
+    tradeMutex.unlock();
 
-    // check if the asked item is available in sufficient quantity
-    if(item != availableItems.end() && qty <= item->second){
-
-        int cost = getCostPerUnit(it) * qty;
-
-        // Transaction
-        money += cost;
-        stocks[it] -= qty;
-
-        return cost;
-    }
-
-    return 0;
+    return cost;
 }
 
 int Factory::getAmountPaidToWorkers() {
-    return Factory::nbBuild * getEmployeeSalary(getEmployeeThatProduces(itemBuilt));
+    return Factory::nbBuild *
+           getEmployeeSalary(getEmployeeThatProduces(itemBuilt));
 }
 
-void Factory::setInterface(WindowInterface *windowInterface) {
+void Factory::setInterface(WindowInterface* windowInterface) {
     interface = windowInterface;
 }
 
-PlasticFactory::PlasticFactory(int uniqueId, int fund) :
-    Factory::Factory(uniqueId, fund, ItemType::Plastic, {ItemType::Petrol}) {}
+PlasticFactory::PlasticFactory(int uniqueId, int fund)
+    : Factory::Factory(uniqueId, fund, ItemType::Plastic, {ItemType::Petrol}) {}
 
-ChipFactory::ChipFactory(int uniqueId, int fund) :
-    Factory::Factory(uniqueId, fund, ItemType::Chip, {ItemType::Sand, ItemType::Copper}) {}
+ChipFactory::ChipFactory(int uniqueId, int fund)
+    : Factory::Factory(uniqueId, fund, ItemType::Chip,
+                       {ItemType::Sand, ItemType::Copper}) {}
 
-RobotFactory::RobotFactory(int uniqueId, int fund) :
-    Factory::Factory(uniqueId, fund, ItemType::Robot, {ItemType::Chip, ItemType::Plastic}) {}
+RobotFactory::RobotFactory(int uniqueId, int fund)
+    : Factory::Factory(uniqueId, fund, ItemType::Robot,
+                       {ItemType::Chip, ItemType::Plastic}) {}
