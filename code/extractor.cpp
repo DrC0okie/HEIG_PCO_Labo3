@@ -1,6 +1,6 @@
 /**
  * @file extractor.cpp
- * @brief Implementation of the Utils class
+ * @brief Implementation of the Extractor class
  * @author Aubry Mangold <aubry.mangold@heig-vd.ch>
  * @author Timothée Van Hove <timothee.vanhove@heig-vd.ch>
  * @date 2023-10-18

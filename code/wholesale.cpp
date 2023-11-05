@@ -1,3 +1,11 @@
+/**
+ * @file wholesale.cpp
+ * @brief Implementation of the Wholesale class
+ * @author Aubry Mangold <aubry.mangold@heig-vd.ch>
+ * @author Timothée Van Hove <timothee.vanhove@heig-vd.ch>
+ * @date 2023-10-18
+ */
+
 #include "wholesale.h"
 #include "factory.h"
 #include "costs.h"

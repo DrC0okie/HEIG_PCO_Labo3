@@ -1,10 +1,15 @@
+/**
+ * @file factory.cpp
+ * @brief Implementation of the Factory class
+ * @author Aubry Mangold <aubry.mangold@heig-vd.ch>
+ * @author Timothée Van Hove <timothee.vanhove@heig-vd.ch>
+ * @date 2023-10-18
+ */
+
 #include "factory.h"
-
 #include <pcosynchro/pcothread.h>
-
 #include <iostream>
 #include <mutex>
-
 #include "costs.h"
 #include "extractor.h"
 #include "wholesale.h"
