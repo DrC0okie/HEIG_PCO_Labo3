@@ -147,12 +147,12 @@ std::map<ItemType, int> Factory::getItemsForSale() {
 
 int Factory::trade(ItemType it, int qty) {
     transactionMutex.lock();
-    if (qty <= 0 || it != itemBuilt || stocks[itemBuilt] < qty) {
+    if (qty <= 0 || it != itemBuilt || stocks[it] < qty) {
         transactionMutex.unlock();
         return 0;
     }
 
-    int cost = getCostPerUnit(it) * qty;
+    int cost = qty * getMaterialCost();
 
     money += cost;
     stocks[it] -= qty;
