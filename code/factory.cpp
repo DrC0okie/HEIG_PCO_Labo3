@@ -66,7 +66,7 @@ void Factory::buildItem() {
         return;
     }
 
-    // produce item
+    // Produce 1 item
     for (ItemType item : resourcesNeeded) {
         stocks[item]--;
     }
