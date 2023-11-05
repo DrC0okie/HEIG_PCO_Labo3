@@ -39,8 +39,10 @@ void Wholesale::buyResources() {
                                  getItemName(i) % QString(" which would cost me %1").arg(price));
 
     transactionMutex.lock();
-    if (price > money)
+    if (price > money){
+        transactionMutex.unlock();
         return;
+    }
 
     int bill = s->trade(i, qty);
     if (bill > 0) {
