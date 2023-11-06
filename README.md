@@ -20,17 +20,16 @@ the flow of the program as some accesses may be overwritten by a write on anothe
 
 The `PcoMutex` class from the `pcosynchro` library is used to handle concurrency by protecting the so-called _critical
 section_. All methods that do read and/or write access to shared members of the class must acquire the mutual exclusion
-lock before processing the critical section to avoid the aforementioned threading problem. The lock must be released on
-every
-exit path of a method.
+lock before processing the critical section to avoid the aforementioned concurrent access problem. The lock must be
+released on every exit path of a method.
 
-Note that the code region that a lock protects may be extended to include other thread-safe statements. This practice
-is justified by the higher cost of acquiring and releasing a lock.
+Note that the code region that a lock protects may be extended to include some thread-safe statements. This practice
+is justified by the overall heavy cost of acquiring and releasing a lock.
 
 ## Implementation
 
-The `PcoMutex` object used to guard against concurrent accesses is factorized as a `protected` member in the `seller`
-object :
+The `PcoMutex` object used to guard against concurrent accesses to an instance is factorized as a private member in
+the `Seller` superclass :
 
 ```c++
 /**
@@ -38,8 +37,6 @@ object :
  */
 PcoMutex transactionMutex;
 ```
-
-Each sub-class then inherits from it.
 
 The following code sections have been completed according to the lab instructions and using the previously detailed
 strategy.
@@ -246,10 +243,11 @@ The following tests have been performed to ensure the proper functioning of the 
 
 - Inspect the game simulation
 - Verify that the game successfully terminates and shows the expected values in the popup
+- Voluntarily introduce deadlocks by removing calls `PcoMutex::lock()` to ensure that a section was indeed critical
 - Modify the `sleep()` values to speed up the simulation
 - Modify the number of entities to make the simulation more complex
-- Modify various thresholds (such as randomly generated values) to observe the effects on the simulation
-- Modify the number of threads available to the program using `taskset`
+- Modify various thresholds (such as the randomly generated values) to observe the effects on the simulation
+- Modify the number of cores available to the program using `taskset`
 
 ## Conclusion
 
