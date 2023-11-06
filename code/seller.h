@@ -59,6 +59,10 @@ public:
 
     int getUniqueId() { return uniqueId; }
 
+    /**
+     * @brief Mutex used to avoid concurrency while manipulating money or stock.
+     */
+    PcoMutex transactionMutex;
 protected:
     /**
      * @brief stocks : Type, Quantité
@@ -67,10 +71,6 @@ protected:
     int money;
     int uniqueId;
 
-    /**
-     * @brief Mutex used to avoid concurrency while manipulating money or stock.
-     */
-    PcoMutex transactionMutex;
 };
 
 #endif // SELLER_H
