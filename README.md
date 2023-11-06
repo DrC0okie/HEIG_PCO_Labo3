@@ -4,19 +4,19 @@
 
 **Date**: 07.11.2023
 
-## Introduction
+## 1. Introduction
 
-In this lab, we were given the code base of a multithreaded simulation program simulating production and sales between
+In this lab, we were given the code base of a multi-threaded simulation program simulating production and sales between
 multiple entities. The job consists in implementing the logic governing the interactions between the various players,
 while paying attention to the critical sections of the program. The development of the resource management simulation
-has necessitated the implementation of several methods across the `extractors`, `wholesalers`, and `factories` classes
+has necessitated the implementation of several methods across the `Extractors`, `Wholesalers` and `Factories` classes
 to emulate the transactions. Our methodology emphasizes thread safety and transactional integrity ensuring that the
 simulation behaves predictably under concurrent conditions.
 
-## Concurrency
+## 2. Concurrency
 
 The program contains multiple methods that need to access the same resources of a class concurrently. This might affect
-the flow of the program as some accesses may be overwritten by a write on another thread.
+the flow of the program as some accesses may be overwritten by another thread.
 
 The `PcoMutex` class from the `pcosynchro` library is used to handle concurrency by protecting the so-called _critical
 section_. All methods that do read and/or write access to shared members of the class must acquire the mutual exclusion
@@ -26,88 +26,64 @@ released on every exit path of a method.
 Note that the code region that a lock protects may be extended to include some thread-safe statements. This practice
 is justified by the overall heavy cost of acquiring and releasing a lock.
 
-## Implementation
+## 3. Implementation
 
-The `PcoMutex` object used to guard against concurrent accesses to an instance is factorized as a private member in
-the `Seller` superclass :
-
-```c++
-/**
- * @brief Mutex used to avoid concurrency while manipulating money or stock.
- */
-PcoMutex transactionMutex;
-```
+The `PcoMutex` object is used to guard against concurrent accesses to an instance. It is factorized as a private member
+of the `Seller` superclass.
 
 The following code sections have been completed according to the lab instructions and using the previously detailed
 strategy.
 
-### The `trade` methods
+### 3.1 The `trade` methods
 
-The `trade` methods have been implemented in the `Extractor`, `Wholesale` and `Factory` classes.
-The implementation is globally the same in each of those classes, and designed to handle the transaction of a specific
-resource.
-It first acquires a lock to ensure thread safety, preventing simultaneous access that could lead to inconsistent states.
+The `trade` methods is implemented in the `Extractor`, `Wholesale` and `Factory` classes.
+The code is similar in each of the classes. It is designed to handle the transaction of a specified resource.
+A lock is first acquired to ensure thread safety, preventing simultaneous accesses that could lead to inconsistent
+state.
 Upon locking, the method verifies the validity of the trade, checking the requested quantity against the inventory and
 matching the item type to the extractor's resource.
 If the trade is invalid, it releases the lock and returns zero to indicate failure. For successful trades, it calculates
-the cost, adjusts the inventory and funds
-accordingly, and then releases the lock. This method provides a thread-safe means for extractors to participate in the
-market effectively.
+the cost, adjusts the inventory and funds accordingly, and then releases the lock. This method provides a thread-safe
+means for extractors to participate in the market effectively.
 
-trade method in the `Extractor` class:
+The following code excerpt is taken from the `Extractor::trade()` method:
 
 ```c++
-int Extractor::trade(ItemType it, int qty) {
-    transactionMutex.lock();
-    // Check trade validity
-    if ( qty <= 0 || it != resourceExtracted || stocks[it] < qty) {
-        transactionMutex.unlock();
-        return 0;
-    }
-
-    int cost = qty * getMaterialCost();
-    money += cost;
-
-    stocks[it] -= qty;
+transactionMutex.lock();
+if ( qty <= 0 || it != resourceExtracted || stocks[it] < qty) {
     transactionMutex.unlock();
-
-    return cost;
+    return 0;
 }
+
+int cost = qty * getMaterialCost();
+money += cost;
+stocks[it] -= qty;
+
+transactionMutex.unlock();
+return cost;
 ```
 
-### Wholesalers
+### 3.2 Wholesaler class
 
-`buyResources` method:
-
-Implemented to get resources from the extractors, the `buyResources` method is designed to allocate funds for purchasing
-resources necessary for various wholesalers.
-The implementation is straightforward : We lock the transaction section, and if the wholesaler has enough money, it buys
-from a random extractor by decrementing the money and incrementing the stock.
+The `Wholesale::buyResources()` method is designed to purchase the resources of the game from other sellers.
+The implementation is straightforward : a lock protects the critical part of the transaction, and if the wholesaler
+has enough money, it buys from a random seller by decrementing the money and incrementing the stock.
+The mutex around the call `Seller:trade()` has been purposely place to prevent a deadlock situation. Indeed, if a given
+wholesaler tries to buy from afFactory and that the factory tries to buy from the same wholesaler at the same time, a
+situation where both locks will never be released can occur.
 
 ```c++
 void Wholesale::buyResources() {
-    auto s = Seller::chooseRandomSeller(sellers);
-    auto m = s->getItemsForSale();
-    auto i = Seller::chooseRandomItem(m);
-
-    if (i == ItemType::Nothing) {
-        /* Nothing to buy... */
-        return;
-    }
-
-    int qty = rand() % 5 + 1;
-    int price = qty * getCostPerUnit(i);
-
-    interface->consoleAppendText(uniqueId, QString("I would like to buy %1 of ").arg(qty) %
-                                 getItemName(i) % QString(" which would cost me %1").arg(price));
+    [...]
 
     transactionMutex.lock();
     if (price > money){
         transactionMutex.unlock();
         return;
     }
-
-    int bill = s->trade(i, qty);
+    transactionMutex.unlock();
+    int bill = s->trade(i, qty); // Locking this section may cause a deadlock.
+    transactionMutex.lock();
     if (bill > 0) {
         money -= bill;
         stocks[i] += qty;
@@ -116,17 +92,12 @@ void Wholesale::buyResources() {
 }
 ```
 
-### Factories
+### 3.3 Factory class
 
-`buildItem` method:
-
-The `buildItem` method is at the core of the factory's functionality. It simulates the process of item assembly, from
-resource consumption to labor allocation.
-The implementation is simple: If the factory can pay the employees, it produces an item, then pays the employees, and
-once the item is produced, increments its stocks by 1.
-
-**Note :** We must not keep the lock during the item assembly time, otherwise, we could create a contention for the
-other lock users.
+The `Factory::buildItem()` method simulates the processes of item assembly, resource consumption and labor allocation.
+If the factory can pay the employees, it produces an item, then pays the employees, and once the item is produced,
+increments its stocks by 1. Note that the lock must be kept during the item assembly time, or it would risk creating a
+contention.
 
 ```c++
 void Factory::buildItem() {
@@ -159,21 +130,18 @@ void Factory::buildItem() {
     stocks[itemBuilt]++;
     transactionMutex.unlock();
 
-    // Update interface
-    interface->consoleAppendText(uniqueId, "Factory have build a new object");
+    [...]
 }
 ```
 
-`orderResources` method:
-
-Factories rely on the `orderResources` method to maintain supply of raw materials. The method will order only the
-resource it has the least of, simply by looking at the lowest
-quantity of each resource in the stocks with the `std::min_element` function. For simplicity, only 1 resource is ordered
-at a time. The method seeks if any wholesaler can trade
-the needed resource. If one of the wholesalers possesses it, the resource is purchased (decrement money and increment
-stocks).
-
-Note: the `std` containers offer no thread-safe guarantee when read and write may happen at the same time.
+The `Factory::orderResources()` method maintains the supply of raw materials. It will order the resource the factory
+has the least of by looking at the lowest quantity of each resource in the stocks. For simplicity, only 1 resource is
+ordered
+at a time. The method seeks if any wholesaler can trade the needed resource. If one of the wholesalers possesses it,
+the resource is purchased by decrementing the money and incrementing the stock. The `std` containers (such as the one
+used to hold the stock) offer no thread-safe guarantee when read and write may happen at the same time.
+Note that the aforementioned deadlock situation between the factory and the wholesaler could also be avoided by
+refactoring this method.
 
 ```c++
 void Factory::orderResources() {
@@ -205,6 +173,35 @@ void Factory::orderResources() {
 }
 ```
 
+### 3.4 Extractor class
+
+// TODO: redact this section about the `Extractor::run()`but stay brief. Mention why the usleep is not protected.
+
+```c++
+void Extractor::run() {
+    [...]
+ 
+    int minerCost = getEmployeeSalary(getEmployeeThatProduces(resourceExtracted));
+    transactionMutex.lock();
+    if (money < minerCost) {
+        transactionMutex.unlock();
+        PcoThread::usleep(1000U);
+        continue;
+    }
+
+    money -= minerCost;
+    transactionMutex.unlock();
+    PcoThread::usleep((rand() % 100 + 1) * 10000);
+    nbExtracted++;
+
+    transactionMutex.lock();
+    stocks[resourceExtracted] += 1;
+    transactionMutex.unlock();
+    
+    [...]
+}
+```
+
 ## Program exit
 
 When the user clicks on the _Close_ button of the window, a signal that ultimately calls the `Utils::endService()`
@@ -217,11 +214,12 @@ for (auto& thread : threads)
     thread->requestStop();
 ```
 
-The `PcoThread::requestStop()` method requests the threads to stop by setting a boolean flag inside the class. The flag
-is the checked in the `run()` method of each `Seller` instance with the `PcoThread::stopRequested()` method. Once the
-flag is set, the instances will all stop their execution once their current task is finished.
+The `PcoThread::requestStop()` method requests the threads to stop by setting a boolean member that acts as a flag.
+This flag is the checked in the `run()` method of each `Seller` instance by calling the `PcoThread::stopRequested()`
+method. Once the flag is set, the instances will all stop their main run loop once their current task is finished. The
+program is then able to terminate gracefully.
 
-Example in the `Factory` class:
+Example taken fro the `Factory::run()` method:
 
 ```c++
   while (!PcoThread::thisThread()->stopRequested()) {
@@ -230,21 +228,26 @@ Example in the `Factory` class:
         } else {
             orderResources();
         }
-        ...
+        [...]
     }
 ```
 
-Remark: the simulation sometimes hangs for a little while before exiting due to the fact that the threads must
-all finish their current task before exiting. If the hang was to be permanent, it would be indicative of a deadlock.
+Note that the simulation sometimes hangs for a little while before exiting due to the fact that the threads must
+all finish their current task before exiting.
 
 ## Tests
 
 The following tests have been performed to ensure the proper functioning of the program:
 
-- Inspect the game simulation
+- Running the simulation and observing the behavior of the entities via the graphical interface
 - Verify that the game successfully terminates and shows the expected values in the popup
-- Voluntarily introduce deadlocks by removing calls `PcoMutex::lock()` to ensure that a section was indeed critical
-- Modify the `sleep()` values to speed up the simulation
+- Voluntarily introduce inconsistencies by removing calls to `PcoMutex::lock()` to ensure that a section was indeed
+  critical
+- Voluntarily introduce deadlocks by removing calls to `PcoMutex::unlock()` to ensure that mutual exclusion was indeed
+  necessary
+- Modify the `usleep()` values to speed up the simulation. Note that the simulation ceases to function properly passed
+  a certain speed threshold, leading to freezes during the execution and/or the inability to terminate the program
+  properly. The causes of this behavior are unknown.
 - Modify the number of entities to make the simulation more complex
 - Modify various thresholds (such as the randomly generated values) to observe the effects on the simulation
 - Modify the number of cores available to the program using `taskset`
