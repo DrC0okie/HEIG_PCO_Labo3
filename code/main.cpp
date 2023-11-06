@@ -3,7 +3,6 @@
 #include "utils.h"
 #include "windowinterface.h"
 
-//#define NO_SLEEP // Modify this to slow down.
 
 int main(int argc, char *argv[])
 {
