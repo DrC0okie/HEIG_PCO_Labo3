@@ -152,11 +152,10 @@ int Factory::trade(ItemType it, int qty) {
     }
 
     int cost = qty * getMaterialCost();
-
     money += cost;
     stocks[it] -= qty;
-    transactionMutex.unlock();
 
+    transactionMutex.unlock();
     return cost;
 }
 

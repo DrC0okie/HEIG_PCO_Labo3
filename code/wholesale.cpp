@@ -51,9 +51,11 @@ void Wholesale::buyResources() {
         transactionMutex.unlock();
         return;
     }
+
     transactionMutex.unlock();
-    int bill = s->trade(i, qty); // Locking this section can cause a deadlock.
+    int bill = s->trade(i, qty); // Locking this section may cause a deadlock.
     transactionMutex.lock();
+
     if (bill > 0) {
         money -= bill;
         stocks[i] += qty;
@@ -95,10 +97,9 @@ int Wholesale::trade(ItemType it, int qty) {
 
     int cost = getCostPerUnit(it) * qty;
     money += cost;
-
     stocks[it] -= qty;
-    transactionMutex.unlock();
 
+    transactionMutex.unlock();
     return cost;
 }
 

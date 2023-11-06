@@ -28,7 +28,6 @@ std::map<ItemType, int> Extractor::getItemsForSale() {
 
 int Extractor::trade(ItemType it, int qty) {
     transactionMutex.lock();
-    // Check trade validity
     if ( qty <= 0 || it != resourceExtracted || stocks[it] < qty) {
         transactionMutex.unlock();
         return 0;
@@ -36,10 +35,9 @@ int Extractor::trade(ItemType it, int qty) {
 
     int cost = qty * getMaterialCost();
     money += cost;
-
     stocks[it] -= qty;
-    transactionMutex.unlock();
 
+    transactionMutex.unlock();
     return cost;
 }
 
