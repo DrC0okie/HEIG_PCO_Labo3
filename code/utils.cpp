@@ -10,11 +10,11 @@
 
 
 void Utils::endService() {
-    std::cout << "It's time to end !" << std::endl;
-
     // Ask the threads to stop
-    for(auto& thread : threads)
+    for (auto& thread : threads)
         thread->requestStop();
+
+    std::cout << "It's time to end !" << std::endl;
 }
 
 void Utils::externalEndService() {
