@@ -9,7 +9,6 @@
 #include "factory.h"
 #include <pcosynchro/pcothread.h>
 #include <iostream>
-#include <mutex>
 #include "costs.h"
 #include "extractor.h"
 #include "wholesale.h"
