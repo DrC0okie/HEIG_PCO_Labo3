@@ -51,8 +51,9 @@ void Wholesale::buyResources() {
         transactionMutex.unlock();
         return;
     }
-
-    int bill = s->trade(i, qty);
+    transactionMutex.unlock();
+    int bill = s->trade(i, qty); // Locking this section can cause a deadlock.
+    transactionMutex.lock();
     if (bill > 0) {
         money -= bill;
         stocks[i] += qty;
