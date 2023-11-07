@@ -90,7 +90,10 @@ std::map<ItemType, int> Wholesale::getItemsForSale() {
 
 int Wholesale::trade(ItemType it, int qty) {
     transactionMutex.lock();
-    if (qty <= 0 || !stocks.contains(it) || stocks[it] < qty) {
+
+    auto itemsForSale = getItemsForSale();
+    auto inStock = itemsForSale.find(it) != itemsForSale.end();
+    if (qty <= 0 || !inStock || stocks[it] < qty) {
         transactionMutex.unlock();
         return 0;
     }

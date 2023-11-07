@@ -99,7 +99,8 @@ void Factory::orderResources() {
 
     // Iterate over available wholesalers
     for (Wholesale* ws : wholesalers) {
-        if (ws->getItemsForSale().contains(resourceToBuy)) {
+        auto itemsForSale = ws->getItemsForSale();
+        if (itemsForSale.find(resourceToBuy) != itemsForSale.end()) {
             int cost = getCostPerUnit(resourceToBuy);
             if (cost > money)
                 break;
