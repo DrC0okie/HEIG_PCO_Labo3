@@ -36,7 +36,7 @@ strategy.
 
 ### 3.1 The `trade` methods
 
-The `trade` methods is implemented in the `Extractor`, `Wholesale` and `Factory` classes.
+The `trade` methods are implemented in the `Extractor`, `Wholesale` and `Factory` classes.
 The code is similar in each of the classes. It is designed to handle the transaction of a specified resource.
 A lock is first acquired to ensure thread safety, preventing simultaneous accesses that could lead to inconsistent
 state.
@@ -66,10 +66,10 @@ return cost;
 ### 3.2 Wholesaler class
 
 The `Wholesale::buyResources()` method is designed to purchase the resources of the game from other sellers.
-The implementation is straightforward : a lock protects the critical part of the transaction, and if the wholesaler
+The implementation is straightforward: a lock protects the critical part of the transaction, and if the wholesaler
 has enough money, it buys from a random seller by decrementing the money and incrementing the stock.
 The mutex around the call `Seller:trade()` has been purposely place to prevent a deadlock situation. Indeed, if a given
-wholesaler tries to buy from afFactory and that the factory tries to buy from the same wholesaler at the same time, a
+wholesaler tries to buy from a Factory and that specific  factory tries to buy from the same wholesaler at the same time, a
 situation where both locks will never be released can occur.
 
 ```c++
@@ -96,7 +96,7 @@ void Wholesale::buyResources() {
 
 The `Factory::buildItem()` method simulates the processes of item assembly, resource consumption and labor allocation.
 If the factory can pay the employees, it produces an item, then pays the employees, and once the item is produced,
-increments its stocks by 1. Note that the lock must be kept during the item assembly time, or it would risk creating a
+increments its stocks by 1 unit. Note that the lock must be kept during the item assembly time, or it would risk creating
 contention.
 
 ```c++
@@ -175,7 +175,11 @@ void Factory::orderResources() {
 
 ### 3.4 Extractor class
 
-// TODO: redact this section about the `Extractor::run()`but stay brief. Mention why the usleep is not protected.
+The `Extractor::run()` method is a continuous loop that simulate the extraction process, which includes paying the miner's salary and adding the extracted resource to the stockpile.
+
+The call to `PcoThread::usleep()` is intentionally left unlocked because protecting this with a mutex would create unnecessary 
+contention, as no shared resources are being accessed or modified during this time. Furthermore, since the sleeping period is 
+meant to simulate the time taken by a miner to extract resources, it should not be subject to synchronization constraints.
 
 ```c++
 void Extractor::run() {
@@ -219,7 +223,7 @@ This flag is the checked in the `run()` method of each `Seller` instance by call
 method. Once the flag is set, the instances will all stop their main run loop once their current task is finished. The
 program is then able to terminate gracefully.
 
-Example taken fro the `Factory::run()` method:
+Example taken from the `Factory::run()` method:
 
 ```c++
   while (!PcoThread::thisThread()->stopRequested()) {
@@ -243,7 +247,7 @@ The following tests have been performed to ensure the proper functioning of the 
 - Verify that the game successfully terminates and shows the expected values in the popup
 - Voluntarily introduce inconsistencies by removing calls to `PcoMutex::lock()` to ensure that a section was indeed
   critical
-- Voluntarily introduce deadlocks by removing calls to `PcoMutex::unlock()` to ensure that mutual exclusion was indeed
+- Voluntarily introduce deadlocks by removing calls to `PcoMutex::unlock()` to ensure that mutual exclusion is indeed
   necessary
 - Modify the `usleep()` values to speed up the simulation. Note that the simulation ceases to function properly passed
   a certain speed threshold, leading to freezes during the execution and/or the inability to terminate the program
@@ -254,7 +258,7 @@ The following tests have been performed to ensure the proper functioning of the 
 
 ## Conclusion
 
-In summary, the implementation of this lab simulation features is indicative of careful consideration of thread safety
+In summary, the features of this lab simulation's implementation are indicative of careful consideration of thread safety
 and transaction integrity.
 The designed `trade`, `buyResources`, `buildItem`, and `orderResources` methods function as intended, facilitating the
 simulation of economic interactions
